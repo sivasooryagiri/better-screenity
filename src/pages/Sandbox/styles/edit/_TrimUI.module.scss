@@ -5,7 +5,7 @@
   bottom: 0px;
   left: 0px;
   width: 100%;
-  height: 230px;
+  height: 260px;
   border-top: 1px solid $color-border;
   background-color: #fff;
 }
@@ -77,6 +77,40 @@
     display: inline-block;
     margin-left: 5px;
   }
+}
+
+.tabToggle {
+  display: flex;
+  gap: 3px;
+  background: $color-light-grey;
+  border-radius: 10px;
+  padding: 3px;
+  border: 1px solid $color-border;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.04);
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: $font-size-small;
+  font-family: $font-medium;
+  color: $color-text-secondary;
+  padding: 5px 14px;
+  border-radius: 7px;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+
+  &:hover {
+    color: $color-text-primary;
+    background: rgba(255,255,255,0.6);
+  }
+}
+
+.tabBtnActive {
+  background: #fff;
+  color: $color-text-primary;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 @media (max-width: 1000px) {

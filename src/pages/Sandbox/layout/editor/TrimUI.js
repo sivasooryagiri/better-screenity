@@ -1,8 +1,8 @@
 import React, { useContext, useState, useEffect } from "react";
 import Trimmer from "../../components/editor/Trimmer";
+import ZoomTimeline from "../../components/editor/ZoomTimeline";
 import styles from "../../styles/edit/_TrimUI.module.scss";
 
-// Icons
 import { ReactSVG } from "react-svg";
 
 const URL = "/assets/";
@@ -14,15 +14,15 @@ const UndoIcon = URL + "editor/icons/undo.svg";
 const RedoIcon = URL + "editor/icons/redo.svg";
 const TimeIcon = URL + "editor/icons/time.svg";
 
-// Context
-import { ContentStateContext } from "../../context/ContentState"; // Import the ContentState context
+import { ContentStateContext } from "../../context/ContentState";
 
 const TrimUI = (props) => {
-  const [contentState, setContentState] = useContext(ContentStateContext); // Access the ContentState context
+  const [contentState, setContentState] = useContext(ContentStateContext);
   const [undoDisabled, setUndoDisabled] = useState(true);
   const [redoDisabled, setRedoDisabled] = useState(true);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(0);
+  const [activeTab, setActiveTab] = useState("trim"); // "trim" | "zoom"
 
   useEffect(() => {
     setStartTime(contentState.start * contentState.duration);
@@ -59,53 +59,86 @@ const TrimUI = (props) => {
   return (
     <div className={styles.trimWrap}>
       <div className={styles.controls}>
-        <div className={styles.actions}>
+        {activeTab === "trim" && (
+          <div className={styles.actions}>
+            <button
+              className="button secondaryButton"
+              onClick={() => contentState.handleTrim(false)}
+              disabled={
+                contentState.isFfmpegRunning ||
+                (contentState.start === 0 && contentState.end === 1)
+              }
+            >
+              <ReactSVG src={TrimIcon} />
+              {contentState.trimming
+                ? chrome.i18n.getMessage("sandboxEditorTrimProgressButton") +
+                  (contentState.processingProgress > 0
+                    ? ` ${contentState.processingProgress}%`
+                    : "")
+                : chrome.i18n.getMessage("sandboxEditorTrimButton")}
+            </button>
+            <button
+              className="button secondaryButton"
+              disabled={
+                (contentState.start === 0 && contentState.end === 1) ||
+                contentState.isFfmpegRunning
+              }
+              onClick={() => contentState.handleTrim(true)}
+            >
+              <ReactSVG src={RemoveIcon} />
+              {contentState.cutting
+                ? chrome.i18n.getMessage("sandboxEditorCutProgressButton") +
+                  (contentState.processingProgress > 0
+                    ? ` ${contentState.processingProgress}%`
+                    : "")
+                : chrome.i18n.getMessage("sandboxEditorCutButton")}
+            </button>
+            <button
+              className="button secondaryButton"
+              onClick={() => contentState.handleMute()}
+              disabled={contentState.isFfmpegRunning}
+            >
+              <ReactSVG src={MuteIcon} />
+              {contentState.muting
+                ? chrome.i18n.getMessage("sandboxEditorMuteProgressButton") +
+                  (contentState.processingProgress > 0
+                    ? ` ${contentState.processingProgress}%`
+                    : "")
+                : chrome.i18n.getMessage("sandboxEditorMuteButton")}
+            </button>
+          </div>
+        )}
+
+        {activeTab === "zoom" && (
+          <div className={styles.actions}>
+            <button
+              className="button secondaryButton"
+              disabled={contentState.isFfmpegRunning}
+              onClick={() =>
+                setContentState((prev) => ({ ...prev, zoomKeyframes: [] }))
+              }
+            >
+              <ReactSVG src={RemoveIcon} />
+              Clear all zoom
+            </button>
+          </div>
+        )}
+
+        <div className={styles.tabToggle}>
           <button
-            className="button secondaryButton"
-            onClick={() => contentState.handleTrim(false)}
-            disabled={
-              contentState.isFfmpegRunning ||
-              (contentState.start === 0 && contentState.end === 1)
-            }
+            className={`${styles.tabBtn} ${activeTab === "trim" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("trim")}
           >
-            <ReactSVG src={TrimIcon} />
-            {contentState.trimming
-              ? chrome.i18n.getMessage("sandboxEditorTrimProgressButton") +
-                (contentState.processingProgress > 0
-                  ? ` ${contentState.processingProgress}%`
-                  : "")
-              : chrome.i18n.getMessage("sandboxEditorTrimButton")}
+            Trim
           </button>
           <button
-            className="button secondaryButton"
-            disabled={
-              (contentState.start === 0 && contentState.end === 1) ||
-              contentState.isFfmpegRunning
-            }
-            onClick={() => contentState.handleTrim(true)}
+            className={`${styles.tabBtn} ${activeTab === "zoom" ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab("zoom")}
           >
-            <ReactSVG src={RemoveIcon} />
-            {contentState.cutting
-              ? chrome.i18n.getMessage("sandboxEditorCutProgressButton") +
-                (contentState.processingProgress > 0
-                  ? ` ${contentState.processingProgress}%`
-                  : "")
-              : chrome.i18n.getMessage("sandboxEditorCutButton")}
-          </button>
-          <button
-            className="button secondaryButton"
-            onClick={() => contentState.handleMute()}
-            disabled={contentState.isFfmpegRunning}
-          >
-            <ReactSVG src={MuteIcon} />
-            {contentState.muting
-              ? chrome.i18n.getMessage("sandboxEditorMuteProgressButton") +
-                (contentState.processingProgress > 0
-                  ? ` ${contentState.processingProgress}%`
-                  : "")
-              : chrome.i18n.getMessage("sandboxEditorMuteButton")}
+            🔎 Zoom
           </button>
         </div>
+
         <div className={styles.timeWrap}>
           <ReactSVG src={TimeIcon} />
           <span>{toTimeStamp(startTime) + " - " + toTimeStamp(endTime)}</span>
@@ -130,43 +163,50 @@ const TrimUI = (props) => {
           </button>
         </div>
       </div>
-      <Trimmer />
-      {(!contentState.dragInteracted || contentState.duration > 3) && (
-        <div className={styles.trimInfo}>
-          <div className={styles.trimInfoLeft}>
-            <ReactSVG src={URL + "editor/icons/alert.svg"} />
-          </div>
-          <div className={styles.trimInfoRight}>
-            {chrome.i18n.getMessage("sandboxEditorTrimInfo")}
-            <div
-              className={styles.trimInfoLink}
-              onClick={() => {
-                chrome.runtime.sendMessage({ type: "trim-info" });
-              }}
-            >
-              {chrome.i18n.getMessage("learnMoreDot")}
+
+      {activeTab === "trim" && (
+        <>
+          <Trimmer />
+          {(!contentState.dragInteracted || contentState.duration > 3) && (
+            <div className={styles.trimInfo}>
+              <div className={styles.trimInfoLeft}>
+                <ReactSVG src={URL + "editor/icons/alert.svg"} />
+              </div>
+              <div className={styles.trimInfoRight}>
+                {chrome.i18n.getMessage("sandboxEditorTrimInfo")}
+                <div
+                  className={styles.trimInfoLink}
+                  onClick={() => {
+                    chrome.runtime.sendMessage({ type: "trim-info" });
+                  }}
+                >
+                  {chrome.i18n.getMessage("learnMoreDot")}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-      {contentState.dragInteracted && contentState.duration <= 3 && (
-        <div className={styles.trimInfo}>
-          <div className={styles.trimInfoLeft}>
-            <ReactSVG src={URL + "editor/icons/alert.svg"} />
-          </div>
-          <div className={styles.trimInfoRight}>
-            {chrome.i18n.getMessage("sandboxEditorTooSmallInfo")}
-            <div
-              className={styles.trimInfoLink}
-              onClick={() => {
-                chrome.runtime.sendMessage({ type: "trim-info" });
-              }}
-            >
-              {chrome.i18n.getMessage("learnMoreDot")}
+          )}
+          {contentState.dragInteracted && contentState.duration <= 3 && (
+            <div className={styles.trimInfo}>
+              <div className={styles.trimInfoLeft}>
+                <ReactSVG src={URL + "editor/icons/alert.svg"} />
+              </div>
+              <div className={styles.trimInfoRight}>
+                {chrome.i18n.getMessage("sandboxEditorTooSmallInfo")}
+                <div
+                  className={styles.trimInfoLink}
+                  onClick={() => {
+                    chrome.runtime.sendMessage({ type: "trim-info" });
+                  }}
+                >
+                  {chrome.i18n.getMessage("learnMoreDot")}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
+        </>
       )}
+
+      {activeTab === "zoom" && <ZoomTimeline />}
     </div>
   );
 };

@@ -197,6 +197,7 @@ const ContentState = (props) => {
     bannerSupport: false,
     backupBlob: null,
     recordingMeta: null,
+    zoomKeyframes: [], // [{id, time, zoom, x, y}]
   };
 
   const [contentState, _setContentState] = useState(defaultState);
